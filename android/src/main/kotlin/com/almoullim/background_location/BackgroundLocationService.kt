@@ -50,6 +50,7 @@ class BackgroundLocationService: MethodChannel.MethodCallHandler, PluginRegistry
     private var isAttached = false
     private var receiver: MyReceiver? = null
     private var service: LocationUpdatesService? = null
+    private var isBroadcastReceiverRegister = false
 
     /**
      * Signals whether the LocationUpdatesService is bound
@@ -77,8 +78,13 @@ class BackgroundLocationService: MethodChannel.MethodCallHandler, PluginRegistry
 
         receiver = MyReceiver()
 
-        LocalBroadcastManager.getInstance(context).registerReceiver(receiver!!,
+        if(isBroadcastReceiverRegister != true){
+            LocalBroadcastManager.getInstance(context).registerReceiver(receiver!!,
                 IntentFilter(LocationUpdatesService.ACTION_BROADCAST))
+            isBroadcastReceiverRegister = true
+        }
+        
+        isBroadcastReceiverRegister = true;
     }
 
     fun onDetachedFromEngine() {
@@ -102,8 +108,11 @@ class BackgroundLocationService: MethodChannel.MethodCallHandler, PluginRegistry
     }
 
     private fun startLocationService(distanceFilter: Double?, forceLocationManager : Boolean?): Int{
-        LocalBroadcastManager.getInstance(context!!).registerReceiver(receiver!!,
+        if(isBroadcastReceiverRegister != true){
+            LocalBroadcastManager.getInstance(context!!).registerReceiver(receiver!!,
                 IntentFilter(LocationUpdatesService.ACTION_BROADCAST))
+            isBroadcastReceiverRegister = true
+        }
         if (!bound) {
             val intent = Intent(context, LocationUpdatesService::class.java)
             intent.putExtra("distance_filter", distanceFilter)
@@ -117,7 +126,7 @@ class BackgroundLocationService: MethodChannel.MethodCallHandler, PluginRegistry
     private fun stopLocationService(): Int {
         service?.removeLocationUpdates()
         LocalBroadcastManager.getInstance(context!!).unregisterReceiver(receiver!!)
-
+        isBroadcastReceiverRegister = false
         if (bound) {
             context!!.unbindService(serviceConnection)
             bound = false
